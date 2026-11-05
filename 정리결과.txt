@@ -1,0 +1,29 @@
+사용하지 않는 이전 설정·데모·가상환경·로그를 삭제하지 않고 보관했습니다.
+보관 위치: 
+C:\Users\jjang\OneDrive\문서\카카오톡 받은 파일\ai hackerton\정리보관_20261106_062310
+기존 데이터와 Git 기록, 실행 코드, 테스트는 보존했습니다.
+이전 MySQL에 연결된 누락 자료 파일 19개를 복사했습니다.
+
+보관 목록:
+CLEANUP-REVIEW.md
+classkeep\.env
+classkeep\.env.example
+classkeep\.env.mysql.example
+classkeep\integrations\career-server\.env.example
+classkeep\integrations\career-server\.venv
+classkeep\integrations\career-server\__pycache__
+classkeep\__pycache__
+classkeep\cloudflared-demo.exe
+classkeep\demo-start-error.log
+classkeep\dist\index.html
+classkeep\dist\github-demo.js
+
+검증 결과:
+- 통합 설정 형식 검사 통과: MySQL, qwen2.5:7b, 고용24 서비스별 키 11개.
+- Python AI 서버와 Node 웹 서버가 통합 설정을 읽는 것 확인.
+- 별도 3217 포트에서 MySQL 연결 및 통합 웹 서버 시작 성공. 테스트 서버 종료 완료.
+- 이전 데모 /index.html은 실제 사이트로 이동하며 설정 파일의 웹 접근은 404.
+- 전체 기존 테스트 47개: 통과 44, 실패 2, 생략 1.
+- 실패 2개는 변경 전 assistant.js로도 동일하게 재현되는 기존 AI 답변 테스트 문제.
+- 외부 AI 응답, GitHub 로그인/업로드, 이루리 수집 전체 과정은 이번 정리 검증에 포함하지 않음.
+- 현재 실행 중인 다른 프로젝트 서버는 종료하거나 변경하지 않음.
