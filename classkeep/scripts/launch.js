@@ -1,0 +1,13 @@
+import {spawn} from 'node:child_process';
+import {existsSync} from 'node:fs';
+import {resolve,dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+const local=resolve(root,process.platform==='win32'?'.venv/Scripts/python.exe':'.venv/bin/python');
+const available=existsSync(local);const executable=available?local:process.platform==='win32'?'py':'python3';
+const args=[...(!available&&process.platform==='win32'?['-3']:[]),'-B','scripts/start_integrated.py',...process.argv.slice(2)];
+const child=spawn(executable,args,{cwd:root,stdio:'inherit',windowsHide:true,env:{...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1'}});
+child.on('error',()=>{console.error('Python 실행 파일을 찾을 수 없습니다. 설치.cmd를 실행해주세요.');process.exitCode=1;});
+child.on('exit',code=>{process.exitCode=code??1;});
+process.on('SIGINT',()=>{child.kill('SIGINT');});
+process.on('SIGTERM',()=>{child.kill('SIGTERM');});

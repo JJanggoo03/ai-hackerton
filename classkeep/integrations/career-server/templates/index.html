@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>고용24 구직 도우미</title>
+  <style>
+    :root { color-scheme: light; --ink:#17202b; --muted:#667085; --line:#e5e9ef; --blue:#3157d5; --soft:#f4f7fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--soft); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+    h1 { margin:0 0 8px; font-size:24px; letter-spacing:-.03em; }
+    textarea { width:100%; border:1px solid var(--line); border-radius:10px; padding:12px 14px; font:inherit; outline:none; }
+    input:focus,textarea:focus { border-color:var(--blue); box-shadow:0 0 0 3px #3157d51a; }
+    button { border:0; border-radius:10px; padding:11px 16px; background:var(--blue); color:white; font:inherit; font-weight:650; cursor:pointer; }
+    button:disabled { cursor:wait; opacity:.65; }
+    .app { min-height:100vh; display:flex; flex-direction:column; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px max(20px,calc((100vw - 980px)/2)); background:#fff; border-bottom:1px solid var(--line); }
+    .brand { font-weight:750; letter-spacing:-.02em; }
+    .model { margin-top:3px; color:var(--muted); font-size:12px; }
+    main { width:min(980px,100%); margin:0 auto; padding:24px 20px 160px; flex:1; }
+    .intro { margin:8px 0 24px; color:var(--muted); }
+    #messages { display:flex; flex-direction:column; gap:14px; }
+    .msg { max-width:min(82%,760px); padding:13px 16px; border-radius:16px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .msg.user { align-self:flex-end; background:#e7edff; border-bottom-right-radius:5px; }
+    .msg.assistant { align-self:flex-start; background:white; border:1px solid var(--line); border-bottom-left-radius:5px; }
+    .msg.assistant a { color:#2448bf; text-decoration:underline; }
+    .label { margin-bottom:4px; color:var(--muted); font-size:11px; font-weight:700; }
+    .composer-wrap { position:fixed; bottom:0; left:0; right:0; padding:18px 20px max(18px,env(safe-area-inset-bottom)); background:linear-gradient(#f4f7fb00,#f4f7fb 22%); }
+    .composer { display:flex; gap:10px; width:min(940px,100%); margin:0 auto; padding:10px; border:1px solid var(--line); border-radius:16px; background:#fff; box-shadow:0 8px 26px #17202b12; }
+    textarea { min-height:48px; max-height:140px; resize:vertical; border:0; box-shadow:none!important; }
+    .status { width:min(940px,100%); margin:5px auto 0; color:var(--muted); font-size:12px; }
+    @media(max-width:600px) {.msg{max-width:94%}header{padding:14px 16px}main{padding-inline:14px} }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div><div class="brand">고용24 구직 도우미</div><div class="model">Ollama · {{ model }}</div></div>
+    </header>
+    <main>
+      <p class="intro">채용정보, 직업훈련, 기업별 합격스펙과 합격자소서 요약을 물어보세요.</p>
+      <section id="messages" aria-live="polite"></section>
+    </main>
+    <div class="composer-wrap">
+      <form id="chat-form" class="composer">
+      <textarea id="message" maxlength="2000" placeholder="예: 삼성전자 평균 합격스펙과 최근 합격자소서 예시를 요약해줘" required></textarea>
+        <button id="send" type="submit">보내기</button>
+      </form>
+      <div id="status" class="status">서버 연결 주소: /api/chat · Ollama 호환 요청도 지원합니다.</div>
+    </div>
+  </div>
+  <script>
+    const box = document.getElementById("messages");
+    const form = document.getElementById("chat-form");
+    const input = document.getElementById("message");
+    const send = document.getElementById("send");
+    const statusLine = document.getElementById("status");
+
+    function addMessage(role, content) {
+      const article = document.createElement("article");
+      article.className = `msg ${role}`;
+      const label = document.createElement("div");
+      label.className = "label";
+      label.textContent = role === "user" ? "나" : "도우미";
+      const body = document.createElement("div");
+      const text = String(content || "");
+      const urlPattern = /https?:\/\/[^\s<>"']+/g;
+      let cursor = 0;
+      for (const match of text.matchAll(urlPattern)) {
+        const rawUrl = match[0];
+        const displayUrl = rawUrl.replace(/(?:[),.;!?，。]+|(?:를|을|은|는|와|과|에서|으로|로|에|가|이|도|의|까지|부터|처럼|보다|랑|하고))+$/u, "");
+        const start = match.index ?? 0;
+        body.append(document.createTextNode(text.slice(cursor, start)));
+        try {
+          const url = new URL(displayUrl);
+          if (url.protocol === "http:" || url.protocol === "https:") {
+            const link = document.createElement("a");
+            link.href = url.href;
+            link.textContent = displayUrl;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            body.append(link);
+          } else {
+            body.append(document.createTextNode(displayUrl));
+          }
+        } catch {
+          body.append(document.createTextNode(displayUrl));
+        }
+        cursor = start + displayUrl.length;
+      }
+      body.append(document.createTextNode(text.slice(cursor)));
+      article.append(label, body);
+      box.append(article);
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
+
+    async function loadHistory() {
+      const response = await fetch("/api/history");
+      if (response.ok) {
+        const data = await response.json();
+        data.messages.forEach(message => addMessage(message.role, message.content));
+      }
+    }
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const message = input.value.trim();
+      if (!message) return;
+      addMessage("user", message);
+      input.value = "";
+      input.disabled = true;
+      send.disabled = true;
+      statusLine.textContent = "답변을 준비하고 있습니다. 모델 응답에 시간이 걸릴 수 있어요.";
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "요청에 실패했습니다.");
+        addMessage("assistant", data.reply);
+        statusLine.textContent = "답변을 받았습니다.";
+      } catch (error) {
+        addMessage("assistant", `오류: ${error.message}`);
+        statusLine.textContent = "연결 또는 응답 오류가 발생했습니다.";
+      } finally {
+        input.disabled = false;
+        send.disabled = false;
+        input.focus();
+      }
+    });
+
+    input.addEventListener("keydown", event => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        form.requestSubmit();
+      }
+    });
+    loadHistory();
+  </script>
+</body>
+</html>

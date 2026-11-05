@@ -1,0 +1,26 @@
+{
+  "name": "classkeep-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/launch.js",
+    "setup": "node scripts/setup.js",
+    "test": "node --test server/*.test.js",
+    "test:career": "node --test server/career*.test.js",
+    "benchmark:career": "node scripts/benchmark-career.js",
+    "config:check": "node scripts/launch.js --check-config"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "connect-pg-simple": "^10.0.0",
+    "express": "^5.1.0",
+    "express-session": "^1.18.2",
+    "iconv-lite": "^0.7.3",
+    "mammoth": "^1.13.0",
+    "mysql2": "^3.24.6",
+    "pdfjs-dist": "^6.5.438",
+    "pg": "^8.16.3"
+  }
+}

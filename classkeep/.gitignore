@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+data/
+*.pem
+*.key
+*.log
+__pycache__/
+.test-tmp/
+.venv/
+
+프로그램설정.txt
